@@ -1,6 +1,16 @@
 #pragma once
 #include "const.h"
+#if defined(__linux__)
+#include <mysql_driver.h>
+#include <mysql_connection.h>
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/prepared_statement.h>
+#include <cppconn/resultset.h>
+#include <cppconn/statement.h>
+#else
 #include <mysql/jdbc.h>
+#endif
 class SqlConnection {
 public:
 	SqlConnection(sql::Connection* con, int64_t lasttime) :_con(con), _last_oper_time(lasttime) {}
@@ -63,4 +73,3 @@ public:
 private:
 	std::unique_ptr<MySqlPool> pool_;
 };
-

@@ -17,15 +17,17 @@ set(STATUSSERVER_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/proto/message.proto")
 
 if(UNIX AND NOT APPLE)
   set(STATUSSERVER_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+  set(STATUSSERVER_COMPAT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/compat_include")
   file(MAKE_DIRECTORY "${STATUSSERVER_GENERATED_DIR}")
+  file(MAKE_DIRECTORY "${STATUSSERVER_COMPAT_INCLUDE_DIR}/jdbc")
 
   set(STATUSSERVER_PROTO_SRCS
-    "${STATUSSERVER_GENERATED_DIR}/message.pb.cc"
-    "${STATUSSERVER_GENERATED_DIR}/message.grpc.pb.cc"
+    "${STATUSSERVER_GENERATED_DIR}/proto/message.pb.cc"
+    "${STATUSSERVER_GENERATED_DIR}/proto/message.grpc.pb.cc"
   )
   set(STATUSSERVER_PROTO_HDRS
-    "${STATUSSERVER_GENERATED_DIR}/message.pb.h"
-    "${STATUSSERVER_GENERATED_DIR}/message.grpc.pb.h"
+    "${STATUSSERVER_GENERATED_DIR}/proto/message.pb.h"
+    "${STATUSSERVER_GENERATED_DIR}/proto/message.grpc.pb.h"
   )
 
   add_custom_command(
@@ -40,6 +42,41 @@ if(UNIX AND NOT APPLE)
     DEPENDS "${STATUSSERVER_PROTO}"
     VERBATIM
   )
+
+  add_custom_target(statusserver_sync_generated_headers ALL
+    DEPENDS ${STATUSSERVER_PROTO_SRCS} ${STATUSSERVER_PROTO_HDRS}
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${STATUSSERVER_GENERATED_DIR}/proto/message.pb.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/include/message.pb.h"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${STATUSSERVER_GENERATED_DIR}/proto/message.grpc.pb.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/include/message.grpc.pb.h"
+    VERBATIM
+  )
+
+  if(EXISTS "/usr/include/mysql_driver.h")
+    file(CREATE_LINK
+      "/usr/include/mysql_driver.h"
+      "${STATUSSERVER_COMPAT_INCLUDE_DIR}/jdbc/mysql_driver.h"
+      SYMBOLIC
+    )
+  endif()
+
+  if(EXISTS "/usr/include/mysql_connection.h")
+    file(CREATE_LINK
+      "/usr/include/mysql_connection.h"
+      "${STATUSSERVER_COMPAT_INCLUDE_DIR}/jdbc/mysql_connection.h"
+      SYMBOLIC
+    )
+  endif()
+
+  if(EXISTS "/usr/include/cppconn")
+    file(CREATE_LINK
+      "/usr/include/cppconn"
+      "${STATUSSERVER_COMPAT_INCLUDE_DIR}/jdbc/cppconn"
+      SYMBOLIC
+    )
+  endif()
 else()
   set(STATUSSERVER_PROTO_SRCS
     source/message.pb.cc
@@ -79,10 +116,18 @@ add_executable(StatusServer
   ${PROJECT_HEADERS}
 )
 
+if(TARGET statusserver_sync_generated_headers)
+  add_dependencies(StatusServer statusserver_sync_generated_headers)
+endif()
+
 target_compile_definitions(StatusServer PRIVATE
   UNICODE
   _UNICODE
 )
+
+if(UNIX AND NOT APPLE)
+  target_compile_options(StatusServer PRIVATE -include thread)
+endif()
 
 if(WIN32)
   target_compile_definitions(StatusServer PRIVATE
@@ -92,6 +137,7 @@ if(WIN32)
 endif()
 
 target_include_directories(StatusServer PRIVATE
+  "$<$<BOOL:${UNIX}>:${STATUSSERVER_COMPAT_INCLUDE_DIR}>"
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "$<$<BOOL:${UNIX}>:${STATUSSERVER_GENERATED_DIR}>"
   "${CMAKE_CURRENT_SOURCE_DIR}/include"

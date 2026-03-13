@@ -17,15 +17,17 @@ set(CHATSERVER_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/proto/message.proto")
 
 if(UNIX AND NOT APPLE)
   set(CHATSERVER_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+  set(CHATSERVER_COMPAT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/compat_include")
   file(MAKE_DIRECTORY "${CHATSERVER_GENERATED_DIR}")
+  file(MAKE_DIRECTORY "${CHATSERVER_COMPAT_INCLUDE_DIR}/jdbc")
 
   set(CHATSERVER_PROTO_SRCS
-    "${CHATSERVER_GENERATED_DIR}/message.pb.cc"
-    "${CHATSERVER_GENERATED_DIR}/message.grpc.pb.cc"
+    "${CHATSERVER_GENERATED_DIR}/proto/message.pb.cc"
+    "${CHATSERVER_GENERATED_DIR}/proto/message.grpc.pb.cc"
   )
   set(CHATSERVER_PROTO_HDRS
-    "${CHATSERVER_GENERATED_DIR}/message.pb.h"
-    "${CHATSERVER_GENERATED_DIR}/message.grpc.pb.h"
+    "${CHATSERVER_GENERATED_DIR}/proto/message.pb.h"
+    "${CHATSERVER_GENERATED_DIR}/proto/message.grpc.pb.h"
   )
 
   add_custom_command(
@@ -40,6 +42,41 @@ if(UNIX AND NOT APPLE)
     DEPENDS "${CHATSERVER_PROTO}"
     VERBATIM
   )
+
+  add_custom_target(chatserver_sync_generated_headers ALL
+    DEPENDS ${CHATSERVER_PROTO_SRCS} ${CHATSERVER_PROTO_HDRS}
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${CHATSERVER_GENERATED_DIR}/proto/message.pb.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/include/message.pb.h"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${CHATSERVER_GENERATED_DIR}/proto/message.grpc.pb.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/include/message.grpc.pb.h"
+    VERBATIM
+  )
+
+  if(EXISTS "/usr/include/mysql_driver.h")
+    file(CREATE_LINK
+      "/usr/include/mysql_driver.h"
+      "${CHATSERVER_COMPAT_INCLUDE_DIR}/jdbc/mysql_driver.h"
+      SYMBOLIC
+    )
+  endif()
+
+  if(EXISTS "/usr/include/mysql_connection.h")
+    file(CREATE_LINK
+      "/usr/include/mysql_connection.h"
+      "${CHATSERVER_COMPAT_INCLUDE_DIR}/jdbc/mysql_connection.h"
+      SYMBOLIC
+    )
+  endif()
+
+  if(EXISTS "/usr/include/cppconn")
+    file(CREATE_LINK
+      "/usr/include/cppconn"
+      "${CHATSERVER_COMPAT_INCLUDE_DIR}/jdbc/cppconn"
+      SYMBOLIC
+    )
+  endif()
 else()
   set(CHATSERVER_PROTO_SRCS
     source/message.pb.cc
@@ -96,10 +133,18 @@ add_executable(ChatServer
   ${PROJECT_HEADERS}
 )
 
+if(TARGET chatserver_sync_generated_headers)
+  add_dependencies(ChatServer chatserver_sync_generated_headers)
+endif()
+
 target_compile_definitions(ChatServer PRIVATE
   UNICODE
   _UNICODE
 )
+
+if(UNIX AND NOT APPLE)
+  target_compile_options(ChatServer PRIVATE -include thread)
+endif()
 
 if(WIN32)
   target_compile_definitions(ChatServer PRIVATE
@@ -109,6 +154,7 @@ if(WIN32)
 endif()
 
 target_include_directories(ChatServer PRIVATE
+  "$<$<BOOL:${UNIX}>:${CHATSERVER_COMPAT_INCLUDE_DIR}>"
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "$<$<BOOL:${UNIX}>:${CHATSERVER_GENERATED_DIR}>"
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
