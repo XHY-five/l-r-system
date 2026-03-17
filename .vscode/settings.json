@@ -1,3 +1,8 @@
 {
-    "cmake.sourceDirectory": "/home/five/chat/ChatServer"
+    "cmake.sourceDirectory": "/home/five/chat/ChatServer",
+    "terminal.integrated.env.windows": {
+        "QT_BIN": "D:\\Qt\\6.8.3\\mingw_64\\bin",
+        "QT_MAKE": "D:\\Qt\\Tools\\mingw1310_64\\bin\\mingw32-make.exe",
+        "PATH": "D:\\Qt\\6.8.3\\mingw_64\\bin;D:\\Qt\\Tools\\mingw1310_64\\bin;${env:PATH}"
+    }
 }

@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build life",
+      "type": "process",
+      "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "$ErrorActionPreference = 'Stop'; $lifeDir = Join-Path '${workspaceFolder}' 'life'; Push-Location $lifeDir; try { $qmakePath = $null; if ($env:QT_BIN) { $candidate = Join-Path $env:QT_BIN 'qmake.exe'; if (Test-Path $candidate) { $qmakePath = $candidate } }; if (-not $qmakePath) { $qmakeCmd = Get-Command qmake -ErrorAction SilentlyContinue; if ($qmakeCmd) { $qmakePath = $qmakeCmd.Source } }; if (-not $qmakePath) { throw 'Could not find qmake. Add Qt bin to PATH, or set QT_BIN to your Qt bin directory.' }; $makePath = $null; if ($env:QT_MAKE) { if (Test-Path $env:QT_MAKE) { $makePath = $env:QT_MAKE } else { $makeCmd = Get-Command $env:QT_MAKE -ErrorAction SilentlyContinue; if ($makeCmd) { $makePath = $makeCmd.Source } } }; if (-not $makePath) { foreach ($tool in @('mingw32-make', 'jom', 'nmake')) { $makeCmd = Get-Command $tool -ErrorAction SilentlyContinue; if ($makeCmd) { $makePath = $makeCmd.Source; break } } }; if (-not $makePath) { throw 'Could not find a Qt make tool. Install mingw32-make/jom/nmake, add it to PATH, or set QT_MAKE.' }; & $qmakePath 'life.pro'; if ($LASTEXITCODE -ne 0) { throw 'qmake failed.' }; & $makePath; if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }; $exePath = Join-Path $lifeDir 'bin\\life.exe'; if (-not (Test-Path $exePath)) { throw \"Build completed, but executable was not found at $exePath\" }; $deployPath = Join-Path (Split-Path $qmakePath -Parent) 'windeployqt.exe'; if (Test-Path $deployPath) { & $deployPath '--no-compiler-runtime' $exePath; if ($LASTEXITCODE -ne 0) { throw 'windeployqt failed.' } } } finally { Pop-Location }"
+      ],
+      "options": {
+        "env": {
+          "QT_BIN": "D:\\Qt\\6.8.3\\mingw_64\\bin",
+          "QT_MAKE": "D:\\Qt\\Tools\\mingw1310_64\\bin\\mingw32-make.exe",
+          "PATH": "D:\\Qt\\6.8.3\\mingw_64\\bin;D:\\Qt\\Tools\\mingw1310_64\\bin;${env:PATH}"
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
+    }
+  ]
+}

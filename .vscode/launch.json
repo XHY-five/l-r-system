@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "name": "Run life (Qt6)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/life/bin/life.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}/life/bin",
+      "stopAtEntry": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "D:\\Qt\\Tools\\mingw1310_64\\bin\\gdb.exe",
+      "launchCompleteCommand": "exec-run",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "environment": [
+        {
+          "name": "QT_BIN",
+          "value": "D:\\Qt\\6.8.3\\mingw_64\\bin"
+        },
+        {
+          "name": "QT_MAKE",
+          "value": "D:\\Qt\\Tools\\mingw1310_64\\bin\\mingw32-make.exe"
+        },
+        {
+          "name": "PATH",
+          "value": "D:\\Qt\\6.8.3\\mingw_64\\bin;D:\\Qt\\Tools\\mingw1310_64\\bin;${env:PATH}"
+        }
+      ],
+      "externalConsole": false,
+      "console": "integratedTerminal",
+      "preLaunchTask": "build life"
+    }
+  ]
+}
